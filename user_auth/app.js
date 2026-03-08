@@ -33,6 +33,15 @@ app.use(
   }),
 );
 
+//define json
+app.use(express.json())
+
+// Parse form data
+app.use(express.urlencoded({ extended: true }));
+
+
+app.use(cookieParser());
+
 // Apply the rate limiting middleware to all requests.
 app.use(rateLimit);
 
@@ -41,13 +50,6 @@ app.use(express.static(path.join(__dirname,'public')));
 app.use("uploads", express.static(path.join(__dirname, "/uploads")));
 app.use("/uploads", express.static("uploads"));
 
-// Parse form data
-app.use(express.urlencoded({ extended: true }));
-
-app.use(cookieParser());
-
-//define json
-app.use(express.json())
 
 // ejs template engine
 const ejs = require('ejs');

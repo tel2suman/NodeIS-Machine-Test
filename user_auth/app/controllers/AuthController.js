@@ -9,9 +9,10 @@ const cloudinary = require("../config/cloudinary");
 
 const fs = require("fs");
 
-const StatusCode = require("../utils/StatusCode");
+//const StatusCode = require("../utils/StatusCode");
 
 class AuthController {
+
   // Register page
   async registerPage(req, res) {
     res.render("register", {
@@ -33,15 +34,16 @@ class AuthController {
 
       //validate all fields
       if (!name || !email || !password || !about) {
-        return res.redirect("/register", {
-          message: "all fields are required!!",
-        });
+        return res.redirect("/register");
       }
 
       const existUser = await User.findOne({ email });
 
       if (existUser) {
-        return res.render("/register", { message: "User already exists" });
+        return res.render("register", {
+          title: "Register Page",
+          message: "User already exists"
+        });
       }
 
       //bcrypt function
@@ -50,7 +52,10 @@ class AuthController {
 
       //cloudinary upload
       if (!req.file) {
-        return res.render("/register", { message: "image not uploaded!!" });
+        return res.render("register", {
+          title: "Register Page",
+          message: "image not uploaded!!",
+        });
       }
 
       //upload to clodinary
@@ -94,22 +99,23 @@ class AuthController {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        return res.render("/login", { message: "all fields are required!!" });
+        return res.redirect("/login");
       }
 
       const user = await User.findOne({ email });
 
       if (!user) {
-        return res.render("/login", { message: "User not found" });
+        return res.redirect("/login");
       }
 
       const isMatch = await bcrypt.compare(password, user.password);
 
       if (!isMatch) {
-        return res.render("/login", { message: "Invalid password" });
+        return res.redirect("/login");
       }
 
       if (user && user.is_admin == "user") {
+
         const token = jwt.sign(
           {
             id: user._id,
@@ -117,8 +123,7 @@ class AuthController {
             email: user.email,
           },
           process.env.JWT_SECRET_KEY,
-          { expiresIn: "1d" },
-        );
+          { expiresIn: "1d" });
 
         // store token in session or cookie
         res.cookie("token", token, {
@@ -126,7 +131,8 @@ class AuthController {
           secure: false,
         });
 
-        res.redirect("/posts");
+        return res.redirect("/posts");
+
       } else {
         res.send(error.message);
       }
@@ -201,15 +207,22 @@ class AuthController {
       const user = await User.findById(req.user.id);
 
       if (!user) {
-        return res.redirect("/edit_user?error=Profile not found");
+        return res.redirect("/edit_user");
+      }
+
+      if (
+        !req.body.name &&
+        !req.body.email &&
+        !req.body.password &&
+        !req.body.about &&
+        !req.file
+      ) {
+        return res.redirect("/edit_user");
       }
 
       // Handle Cloudinary image
       if (req.file) {
-        // delete existing image
-        if (user.cloudinary_id) {
-          await cloudinary.uploader.destroy(user.cloudinary_id);
-        }
+
         // upload new image to cloudinary
         const result = await cloudinary.uploader.upload(req.file.path, {
           folder: "uploads",
@@ -219,6 +232,10 @@ class AuthController {
           quality: "auto",
         });
 
+        // delete existing image
+        if (user.cloudinary_id) {
+          await cloudinary.uploader.destroy(user.cloudinary_id);
+        }
         user.image = result.secure_url;
         user.cloudinary_id = result.public_id;
 
@@ -235,17 +252,17 @@ class AuthController {
       if (req.body.email && req.body.email !== user.email) {
         const existEmail = await User.findOne({ email: req.body.email });
         if (existEmail) {
-          return res.redirect("/edit_user?error=Email already exists");
+          return res.redirect("/edit_user");
         }
         // updated email
         user.email = req.body.email;
       }
 
       // password hashing with bcrypt
-      if (req.body.password) {
+      if (req.body.password && req.body.password.trim() !== "") {
         //password length must be 6 charcters
         if (req.body.password.length < 6) {
-          return res.redirect("/edit_user?error=Password must be 6 characters");
+          return res.redirect("/edit_user");
         }
         //password hashing with bcrypt
         const salt = await bcrypt.genSalt(10);
@@ -254,15 +271,6 @@ class AuthController {
 
       if (req.body.about !== undefined) {
         user.about = req.body.about;
-      }
-
-      if (
-        !req.body.name &&
-        !req.body.email &&
-        !req.body.password &&
-        !req.file
-      ) {
-        return res.redirect("/edit_user?error=Nothing to update");
       }
 
       //updated user
