@@ -7,6 +7,8 @@ const path = require("path");
 
 const app = express();
 
+const cookieParser = require("cookie-parser");
+
 const cors = require("cors");
 
 const morgan = require("morgan");
@@ -14,8 +16,6 @@ const morgan = require("morgan");
 const helmet = require("helmet");
 
 const rateLimit = require("./app/utils/limiter");
-
-const mongoSanitize = require("express-mongo-sanitize");
 
 //database connection
 const DatabaseConnection = require('./app/config/dbconn');
@@ -26,29 +26,40 @@ app.use(cors());
 
 app.use(morgan("dev"));
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    xDownloadOptions: false,
+  }),
+);
 
 // Apply the rate limiting middleware to all requests.
 app.use(rateLimit);
-
-// To remove data using these defaults:
-app.use(mongoSanitize());
 
 //static files
 app.use(express.static(path.join(__dirname,'public')));
 app.use("uploads", express.static(path.join(__dirname, "/uploads")));
 app.use("/uploads", express.static("uploads"));
 
+// Parse form data
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cookieParser());
+
 //define json
 app.use(express.json())
-app.use(express.urlencoded({ extended: true }));
+
+// ejs template engine
+const ejs = require('ejs');
+app.set('view engine', 'ejs');
+app.set('views', 'views');
 
 //defining routes
 const authRoute = require("./app/routes/authRoute");
-app.use("/api/auth-user", authRoute);
+app.use(authRoute);
 
 const blogRoute = require('./app/routes/blogRoute');
-app.use("/api/blog", blogRoute);
+app.use(blogRoute);
 
 const port = 8000
 

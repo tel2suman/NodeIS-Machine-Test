@@ -1,20 +1,18 @@
 
 const jwt = require("jsonwebtoken");
 
-const StatusCode = require("../utils/StatusCode");
-
 const authCheck=async(req, res, next)=>{
-    const token =
-      req.body?.token ||
-      req.query?.token ||
-      req.headers["x-access-token"] ||
-      req.headers["authorization"];
+
+     const token =
+       req.body?.token ||
+       req.query?.token ||
+       req.headers["x-access-token"] ||
+       req.headers["authorization"] ||
+       req.cookies?.token;
 
     if (!token) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-            status: false,
-            message: "Token is required for access this page",
-        });
+
+        return res.redirect("/login");
     }
 
     try {
@@ -23,17 +21,12 @@ const authCheck=async(req, res, next)=>{
 
         req.user = decoded;
 
-        console.log("after login user", req.user);
+        next();
 
     } catch (error) {
 
-        return res.status(StatusCode.BAD_REQUEST).json({
-          status: false,
-          message: "invalid token",
-        });
+        return res.redirect("/login");
     }
-
-    return next();
 }
 
 module.exports = authCheck

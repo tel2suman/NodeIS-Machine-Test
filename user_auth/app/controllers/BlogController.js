@@ -10,6 +10,14 @@ const fs = require("fs");
 const StatusCode = require("../utils/StatusCode");
 
 class BlogController {
+
+  //add employee page
+  async addPost(req, res) {
+    res.render("add_details", {
+      title: "Blog Create Page",
+    });
+  }
+
   //create post
   async createPost(req, res) {
     try {
@@ -17,19 +25,13 @@ class BlogController {
 
       //validate all fields
       if (!title || !content) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-          success: false,
-          message: "fields are required",
-        });
+        return res.redirect("/add_details");
       }
 
       const existPost = await BlogPost.findOne({ title });
 
       if (existPost) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-          success: false,
-          message: "post already exist",
-        });
+        return res.redirect("/add_details");
       }
 
       //upload to clodinary
@@ -56,21 +58,21 @@ class BlogController {
 
       const data = await postdata.save();
 
-      return res.status(StatusCode.SUCCESS).json({
-        success: true,
-        message: "post created successfully",
-        data: data,
-      });
+      if (data) {
+        res.redirect("/posts");
+
+      } else {
+        res.redirect("/add_details");
+      }
+
     } catch (error) {
       // cleanup local file if error happens
       if (req.file && fs.existsSync(req.file.path)) {
         await fs.promises.unlink(req.file.path);
       }
 
-      return res.status(StatusCode.SERVER_ERROR).json({
-        success: false,
-        message: error.message,
-      });
+      console.log("Error storing employee:", error);
+      return res.status(500).send("Something went wrong");
     }
   }
 
@@ -79,17 +81,12 @@ class BlogController {
     try {
       const data = await BlogPost.find({ is_delete: false });
 
-      return res.status(StatusCode.SUCCESS).json({
-        success: true,
-        message: "all the posts are here",
-        total: data.length,
+      res.render("posts", {
+        title: "Blog Lists",
         data: data,
       });
     } catch (error) {
-      return res.status(StatusCode.SERVER_ERROR).json({
-        success: false,
-        message: error.message,
-      });
+      console.log(error);
     }
   }
 
@@ -99,24 +96,49 @@ class BlogController {
       const id = req.params.id;
 
       if (!id) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-          success: false,
-          message: "oops, post id required!",
-        });
+        return res.redirect("/posts");
       }
 
       const data = await BlogPost.findById(id);
 
-      return res.status(StatusCode.SUCCESS).json({
-        success: true,
-        message: "get this post",
+      if (!data) {
+        return res.render("view_details", {
+          title: "Post Not Found",
+          data: null,
+        });
+      }
+
+      res.render("view_details", {
+        title: "View Details Page",
         data: data,
       });
     } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: error.message,
+      console.log(error);
+      res.redirect("/posts");
+    }
+  }
+
+  //edit student
+  async editPost(req, res) {
+    try {
+      const id = req.params.id;
+
+      if (!id) {
+        return res.redirect("/posts");
+      }
+
+      const data = await BlogPost.findById(id);
+
+      if (!data) {
+        return res.redirect("/posts");
+      }
+
+      res.render("edit_details", {
+        title: "Edit Blog",
+        data: data,
       });
+    } catch (error) {
+      console.log(error);
     }
   }
 
@@ -126,27 +148,13 @@ class BlogController {
       const id = req.params.id;
 
       if (!id) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-          success: false,
-          message: "post id is required",
-        });
+        return res.redirect("/posts");
       }
 
       const bloguser = await BlogPost.findById(id);
 
       if (!bloguser) {
-        return res.status(StatusCode.NOT_FOUND).json({
-          success: false,
-          message: "Blog not found",
-        });
-      }
-
-      //ownership check
-      if (bloguser.author !== req.user._id) {
-        return res.status(StatusCode.FORBIDDEN).json({
-          success: false,
-          message: "owner can only update his your own post",
-        });
+        return res.redirect("/posts");
       }
 
       // Handle Cloudinary image
@@ -184,100 +192,64 @@ class BlogController {
       //updated user
       const updatedBlog = await bloguser.save();
 
-      return res.status(StatusCode.SUCCESS).json({
-        success: true,
-        message: "Blog updated successfully",
-        data: updatedBlog,
-      });
+      return res.redirect("/posts");
     } catch (error) {
       // cleanup local file if error occurs
       if (req.file && fs.existsSync(req.file.path)) {
         await fs.promises.unlink(req.file.path);
       }
 
-      return res.status(StatusCode.BAD_REQUEST).json({
-        success: false,
-        message: error.message,
-      });
+      console.error(error);
+      return res.status(500).send("Something went wrong");
     }
   }
 
   // soft delete post
   async softdeletePost(req, res) {
-
     try {
-
       const id = req.params.id;
 
       if (!id) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-          success: false,
-          message: "post id is required",
-        });
+        return res.redirect("/posts");
       }
 
-      const data = await BlogPost.findByIdAndUpdate(id,
-        {author: req.user._id},
+      const data = await BlogPost.findByIdAndUpdate(
+        id,
+        { author: req.user._id },
         { is_delete: true },
         { new: true },
       );
 
       if (!data) {
-        return res.status(StatusCode.FORBIDDEN).json({
-          success: false,
-          message: "owner can only delete his own post",
-        });
+        return res.redirect("/posts");
       }
 
-      return res.status(StatusCode.SUCCESS).json({
-        success: true,
-        message: " post soft delete done successfully",
-        data: data,
-      });
-
+      return res.redirect("/posts");
     } catch (error) {
-      return res.status(StatusCode.SERVER_ERROR).json({
-        success: false,
-        message: error.message,
-      });
+      console.error(error);
+      return res.status(500).send("Something went wrong");
     }
   }
 
   // hard delete post
   async deletePost(req, res) {
-
     try {
-
       const id = req.params.id;
 
       if (!id) {
-        return res.status(StatusCode.BAD_REQUEST).json({
-          success: false,
-          message: "post id is required",
-        });
+        return res.redirect("/posts");
       }
 
       const data = await BlogPost.findByIdAndDelete(id);
 
       if (!data) {
-        return res.status(StatusCode.FORBIDDEN).json({
-          success: false,
-          message: "owner can only delete his own post",
-        });
+        return res.redirect("/posts");
       }
 
-      return res.status(StatusCode.SUCCESS).json({
-        success: true,
-        message: " post deleted successfully",
-        data: data,
-      });
-
+      return res.redirect("/posts");
     } catch (error) {
-
-      return res.status(StatusCode.SERVER_ERROR).json({
-        success: false,
-        message: error.message,
-      });
+      console.error(error);
+      return res.status(500).send("Something went wrong");
     }
   }
 }

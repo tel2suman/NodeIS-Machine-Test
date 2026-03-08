@@ -17,7 +17,7 @@ const BlogSchema = new Schema(
 
     cover_image: {
       type: String,
-      default: "default.jpeg",
+      default: "/images/default.jpeg",
     },
 
     cloudinary_id: {
