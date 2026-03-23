@@ -3,22 +3,22 @@ const jwt = require("jsonwebtoken");
 
 const SECRET = process.env.JWT_SECRET_KEY;
 
-const AdminAuthCheck = (req, res, next) => {
+const EmployeeAuthCheck = (req, res, next) => {
 
   try {
 
-    const token = req.cookies?.admintoken;
+    const token = req.cookies?.token;
 
     if (!token) {
 
       req.flash("error", "Access denied. No token provided");
 
-      return res.redirect("/admin/login");
+      return res.redirect("/login/view");
     }
 
      const decoded = jwt.verify(token, SECRET);
 
-    req.admin = decoded; // attach decoded data
+    req.user = decoded; // attach decoded data
 
     return next();
 
@@ -26,8 +26,8 @@ const AdminAuthCheck = (req, res, next) => {
 
     req.flash("error", error.message);
 
-    return res.redirect("/admin/login");
+    return res.redirect("/login/view");
   }
 };
 
-module.exports = AdminAuthCheck;
+module.exports = EmployeeAuthCheck;

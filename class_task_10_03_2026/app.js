@@ -32,7 +32,14 @@ app.use(morgan("dev"));
 
 app.use(morgan("combined"));
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    xDownloadOptions: false,
+  }),
+);
+
+app.use(flash());
 
 // Apply the rate limiting middleware to all requests.
 app.use(rateLimit);
@@ -63,10 +70,10 @@ app.use(
   }),
 );
 
-app.use(flash());
 
 //api routes
 app.use(require("./app/routes/index"));
+
 
 const port = 5000;
 
