@@ -1,33 +1,28 @@
 
 const jwt = require("jsonwebtoken");
 
-const SECRET = process.env.JWT_SECRET_KEY;
-
 const AdminAuthCheck = (req, res, next) => {
 
-  try {
+  const token = req.cookies?.admintoken;
 
-    const token = req.cookies?.admintoken;
+  if (!token) {
+    
+    return next(); // No token, continue (or redirect to login if route requires admin)
+  }
 
-    if (!token) {
+  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
 
-      req.flash("error", "Access denied. No token provided");
+    if (err) {
 
-      return res.redirect("/admin/login");
+      console.error("Admin JWT verification failed:", err.message);
+
+      return next(); // Or redirect / respond with 401 if needed
     }
 
-     const decoded = jwt.verify(token, SECRET);
+    req.admin = decoded; // Attach admin info to request
 
-    req.admin = decoded; // attach decoded data
-
-    return next();
-
-  } catch (error) {
-
-    req.flash("error", error.message);
-
-    return res.redirect("/admin/login");
-  }
+    next();
+  });
 };
 
 module.exports = AdminAuthCheck;
