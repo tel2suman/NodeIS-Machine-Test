@@ -3,8 +3,7 @@ const express = require("express");
 
 const EmployeeController = require("../controllers/EmployeeController");
 
-const EmployeeAuthCheck = require("../middleware/EmployeeAuthCheck");
-
+const RefreshTokenAuth = require("../middleware/RequireAuth");
 
 const router = express.Router();
 
@@ -18,14 +17,25 @@ router.get("/login/view", EmployeeController.loginPage);
 
 router.post("/create/login", EmployeeController.empLogin);
 
-router.use(EmployeeAuthCheck);
+router.use(RefreshTokenAuth);
 
-router.get("/change-pass/view", EmployeeController.passChange);
+router.get(
+  "/change-pass/view",
+  EmployeeController.UserCheckAuth,
+  EmployeeController.passChange,
+);
 
-router.post("/create/change-password", EmployeeController.EmpChangePassword);
+router.post(
+  "/create/change-password",
+  EmployeeController.UserCheckAuth,
+  EmployeeController.EmpChangePassword,
+);
 
 // user dashboard
-router.get("/dashboard", EmployeeController.UserCheckAuth, EmployeeController.dashboard);
+router.get("/dashboard",
+    EmployeeController.UserCheckAuth,
+    EmployeeController.dashboard
+);
 
 // logout
 router.get("/logout", EmployeeController.logoutUser);

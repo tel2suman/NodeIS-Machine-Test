@@ -24,7 +24,7 @@ class EmployeeController {
     } catch (error) {
 
       req.flash("error", error.message);
-      
+
     }
   }
 
@@ -49,11 +49,12 @@ class EmployeeController {
     });
   }
 
+  // signup
   async Signup(req, res) {
     try {
       const { name, email, phone, role } = req.body;
 
-      if (!name || !email || !phone || !role) {
+      if (!name || !email || !phone) {
         req.flash("error", "All fields are required");
 
         return res.redirect("/signup/view");
@@ -80,8 +81,15 @@ class EmployeeController {
         email,
         phone,
         password: hashedPassword,
-        role,
+        role: role || "employee",
+        firstLogin: true,
       });
+
+      const protocol = req.protocol; // http or https
+
+      const host = req.get("host"); // domain + port
+
+      const loginUrl = `${protocol}://${host}/login/view`;
 
       // Send email with credentials
       const transporter = nodemailer.createTransport({
@@ -97,10 +105,69 @@ class EmployeeController {
         to: email,
         subject: "Your Login Credentials",
         html: `
-          <h3>Welcome to Employee Management System</h3>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Password:</strong> ${password}</p>
-          <p>Please change your password after login.</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Login Credentials</title>
+        </head>
+        <body style="margin:0; padding:0; background-color:#f4f6f9; font-family: Arial, sans-serif;">
+
+          <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; margin-top:30px;">
+
+            <!-- Header -->
+            <tr>
+              <td style="background-color:#1e3a8a; padding:20px; text-align:center; color:#ffffff;">
+                <h2 style="margin:0;">Employee Management System</h2>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="background-color:#ffffff; padding:30px;">
+                <h3 style="margin-top:0; color:#333;">Welcome, ${name} 👋</h3>
+
+                <p style="color:#555; font-size:14px; line-height:1.6;">
+                  Your account has been successfully created. Below are your login credentials:
+                </p>
+
+                <table width="100%" cellpadding="10" cellspacing="0" style="background:#f9fafb; border:1px solid #e5e7eb; margin-top:15px;">
+                  <tr>
+                    <td style="font-weight:bold; width:0px; font-size:15px">Email:</td>
+                    <td style="font-size:15px">${email}</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:bold; width:0px; font-size:15px">Password:</td>
+                    <td style="font-size:15px">${password}</td>
+                  </tr>
+                </table>
+
+                <p style="color:#555; font-size:14px; margin-top:20px;">
+                  ⚠️ For security reasons, please change your password after your first login.
+                </p>
+
+                <div style="text-align:center; margin-top:25px;">
+                  <a href="${loginUrl}"
+                    style="background-color:#1e3a8a; color:#ffffff; padding:12px 20px;
+                    text-decoration:none; border-radius:5px; display:inline-block;">
+                    Login Now
+                  </a>
+                </div>
+
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color:#f3f4f6; padding:15px; text-align:center; font-size:12px; color:#777;">
+                © ${new Date().getFullYear()} Employee Management System. All rights reserved.
+              </td>
+            </tr>
+
+          </table>
+
+        </body>
+        </html>
         `,
       });
 
@@ -131,6 +198,13 @@ class EmployeeController {
         return res.redirect("/login/view");
       }
 
+      if (user.isActive === 'deactivated') {
+
+        req.flash("error", "Account Deactivated. Please contact admin");
+
+        return res.redirect("/login/view");
+      }
+
       const isMatch = await bcrypt.compare(password, user.password);
 
       if (!isMatch) {
@@ -139,7 +213,7 @@ class EmployeeController {
         return res.redirect("/login/view");
       }
 
-      const token = jwt.sign(
+      const accessToken = jwt.sign(
         {
           userId: user._id,
           name: user.name,
@@ -150,12 +224,25 @@ class EmployeeController {
         { expiresIn: "1d" },
       );
 
-      if (token) {
-        res.cookie("token", token, {
+      const refreshToken = jwt.sign(
+        { userId: user._id },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: "7d" },
+      );
+
+      if (accessToken && refreshToken) {
+        res.cookie("accessToken", accessToken, {
+          sameSite: "strict",
           httpOnly: true,
-          maxAge: 24 * 60 * 60 * 1000, // 1 day
+          maxAge: 15 * 60 * 1000,
         });
       }
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
       // 🔐 First login case
       if (user.firstLogin) {
@@ -179,7 +266,7 @@ class EmployeeController {
     try {
       const { password } = req.body;
 
-      if (!password || password.length < 8) {
+      if (!password || password.length < 6) {
         req.flash("error", "Invalid Credentials");
 
         return res.redirect("/change-pass/view");
@@ -204,7 +291,9 @@ class EmployeeController {
 
       await user.save();
 
-      res.clearCookie("token");
+      // clear cookie
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
 
       req.flash(
         "success",
@@ -246,12 +335,31 @@ class EmployeeController {
 
   // logout user
   async logoutUser(req, res) {
+
     try {
+
+      const refreshToken = req.cookies.refreshToken;
+
+      if (refreshToken) {
+
+        const user = await Admin.findOne({ refreshToken });
+
+        if (user) {
+
+          user.refreshToken = null;
+
+          await user.save();
+        }
+      }
+
       // clear cookie
-      res.clearCookie("token");
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
 
       return res.redirect("/login/view");
+
     } catch (error) {
+
       req.flash("error", error.message);
     }
   }

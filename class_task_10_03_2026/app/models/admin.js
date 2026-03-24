@@ -32,12 +32,13 @@ const AdminSchema = new Schema(
     role: {
       type: String,
       enum: ["admin", "employee"],
-      required: true,
+      default: "employee",
     },
 
     isActive: {
-      type: Boolean,
-      default: true,
+      type: String,
+      enum: ["active", "deactivated"],
+      default: "active",
     },
 
     firstLogin: {
@@ -45,9 +46,13 @@ const AdminSchema = new Schema(
       default: true,
     },
 
+    refreshToken: {
+      type: String,
+    },
+
     lastLogin: {
-      type: Boolean,
-      default: false,
+      type: Date,
+      default: null,
     },
   },
   {
@@ -55,25 +60,6 @@ const AdminSchema = new Schema(
     versionKey: false,
   },
 );
-
-// // Hash the password before saving
-// AdminSchema.pre("save", async function (next) {
-
-//   try {
-
-//     const salt = await bcrypt.genSalt(10);
-
-//     const hashedPassword = await bcrypt.hash(this.password, salt);
-
-//     this.password = hashedPassword;
-
-//     next();
-
-//   } catch (error) {
-
-//     next(error);
-//   }
-// });
 
 const AdminModel = mongoose.model("admin", AdminSchema);
 
