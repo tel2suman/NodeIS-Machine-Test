@@ -52,7 +52,7 @@ const AdminSchema = new Schema(
 
     lastLogin: {
       type: Date,
-      default: null,
+      default: new Date(),
     },
   },
   {
