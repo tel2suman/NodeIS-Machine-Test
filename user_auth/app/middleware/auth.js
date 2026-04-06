@@ -11,8 +11,8 @@ const authCheck=async(req, res, next)=>{
        req.cookies?.token;
 
     if (!token) {
-        
-        return res.redirect("/login");
+
+        return next();
     }
 
     try {

@@ -1,0 +1,64 @@
+
+<%- include('layouts/header') %>
+
+<div class="container-xl">
+    <div class="row mt-5">
+        <div class="col-lg-8 mx-auto">
+        <form action="/create/product" id="myForm" method="post">
+            <div class="row p-3 bg-light-400">
+                <div class="my-3">
+                    <label for="name" class="form-label fs-5">Product Name</label>
+                    <input type="text" class="form-control field-control" placeholder="Enter Product Name" name="productName" required>
+                </div>
+                <div class="my-3">
+                    <label for="price" class="form-label fs-5">Product Price</label>
+                    <input type="text" class="form-control field-control" placeholder="Enter Product Price" name="productPrice" required>
+                </div>
+                <div class="my-3">
+                    <label for="categoryId" class="form-label fs-5">Choose Category</label>
+                    <select class="form-select field-control" name="categoryId" required>
+                        <% categories.forEach(cat => { %>
+                            <option value="<%= cat._id %>">
+                                <%= cat.categoryName %>
+                            </option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div class="my-3">
+                    <fieldset class="row">
+                        <legend class="form-label fs-5">Choose Size</legend>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="size" id="large" value="large" checked>
+                                <label class="form-check-label fs-5" for="large">
+                                    Large
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="size" id="medium" value="medium">
+                                <label class="form-check-label fs-5" for="medium">
+                                    Medium
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="size" id="small" value="small">
+                                <label class="form-check-label fs-5" for="small">
+                                    Small
+                                </label>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="row justify-content-start">
+                    <div class="col-lg-6 col-12 my-3">
+                        <button type="submit" class="btn btn-lg btn-primary w-100">Create Product</button>
+                    </div>
+                    <div class="col-lg-6 col-12 my-3">
+                        <a href="/category/view" type="button" class="btn btn-lg btn-outline-primary w-100">Add More Category</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    </div>
+</div>

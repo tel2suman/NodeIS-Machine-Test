@@ -1,0 +1,81 @@
+
+<%- include('layouts/header') %>
+
+
+<!-- Page header with logo and tagline-->
+<header class="masthead" style="background-image: url('/assets/img/home-bg.jpg')">
+    <div class="container position-relative px-4 px-lg-5">
+        <div class="row gx-4 gx-lg-5 justify-content-center">
+            <div class="col-md-10 col-lg-8 col-xl-7">
+                <div class="site-heading text-center">
+                    <h1>Product View Page</h1>
+                    <span class="subheading">A Blog Theme by Start Bootstrap</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="container-xl px-0">
+    <div class="row row-cols-2 mb-4">
+        <div class="col">
+            <h4 class="lead fw-bold fs-3 text-capitalize my-0">number of products: <%= data.length %>
+            </h4>
+        </div>
+        <div class="col text-end">
+            <a href="/product/view" type="button" class="btn btn-lg btn-outline-primary">Add More Product</a>
+        </div>
+    </div>
+
+    <div class="table-responsive px-0">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th class="text-capitalize text-center fs-5" scope="col">Serial No.</th>
+                    <th class="text-capitalize text-center fs-5" scope="col">Category Name</th>
+                    <th class="text-capitalize text-center fs-5" scope="col">Product ID</th>
+                    <th class="text-capitalize text-center fs-5" scope="col">Product Name</th>
+                    <th class="text-capitalize text-center fs-5" scope="col">Product Price</th>
+                    <th class="text-capitalize text-center fs-5" scope="col">Size</th>
+                </tr>
+            </thead>
+            <% if (data.length===0) { %>
+
+                <tr>
+                    <td colspan="7">No Records Found</td>
+                </tr>
+
+                <% } else { %>
+
+                <% data.map((product, index)=> { %>
+
+            <tbody class="table-group-divider">
+                <tr>
+                    <td class="fs-5 text-capitalize fw-normal text-center" scope="row">
+                        <%= index + 1 %>
+                    </td>
+                    <td class="fs-5 text-capitalize fw-normal text-center">
+                        <%= product.categoryId.categoryName %>
+                    </td>
+                    <td class="fs-5 text-capitalize fw-normal text-center">
+                        <%= product._id.toString().slice(4, 8) %>
+                    </td>
+                    <td class="fs-5 text-capitalize fw-normal text-center">
+                        <%= product.productName %>
+                    </td>
+                    <td class="fs-5 text-capitalize fw-normal text-center">
+                        <%= product.productPrice %>
+                    </td>
+                    <td class="fs-5 text-capitalize fw-normal text-center">
+                        <%= product.size.join(", ") %>
+                    </td>
+                </tr>
+                <% })%>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Page content-->

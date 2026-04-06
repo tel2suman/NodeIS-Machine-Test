@@ -221,7 +221,7 @@ class EmployeeController {
           role: user.role,
         },
         process.env.JWT_SECRET_KEY,
-        { expiresIn: "1d" },
+        { expiresIn: "15m" },
       );
 
       const refreshToken = jwt.sign(
