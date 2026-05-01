@@ -2,6 +2,7 @@
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
+
 const StatusCode = require("../utils/StatusCode");
 
 const userAuthCheck = async(req, res, next) => {
@@ -26,7 +27,7 @@ const userAuthCheck = async(req, res, next) => {
           req.user = decoded;
 
           return next();
-          
+
         } catch (err) {
           if (err.name !== "TokenExpiredError") {
             return res.status(StatusCode.BAD_REQUEST).json({

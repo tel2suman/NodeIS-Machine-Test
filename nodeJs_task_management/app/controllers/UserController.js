@@ -144,34 +144,72 @@ class UserController {
         const refreshToken = req.cookies.userRefreshToken;
 
         if (!refreshToken) {
-          return res
-            .status(StatusCode.BAD_REQUEST)
-            .json({ success: false, message: "No refresh token" });
+          return res.status(StatusCode.UNAUTHORIZED).json({
+            success: false,
+            message: "No refresh token",
+          });
         }
 
-        const decoded = jwt.verify(
-          refreshToken,
-          process.env.JWT_REFRESH_SECRET,
-        );
+        let decoded;
+
+        try {
+
+          decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+        } catch (err) {
+          return res.status(StatusCode.FORBIDDEN).json({
+            success: false,
+            message:
+              err.name === "TokenExpiredError"
+                ? "Refresh token expired"
+                : "Invalid refresh token",
+          });
+        }
 
         const user = await User.findById(decoded.userId);
 
         if (!user || user.refreshToken !== refreshToken) {
-          return res
-            .status(StatusCode.BAD_REQUEST)
-            .json({ success: false, message: "Invalid token" });
+          return res.status(StatusCode.FORBIDDEN).json({
+            success: false,
+            message: "Token mismatch",
+          });
         }
 
-        const newAccessToken = jwt.sign(
+        // 🔁 Rotate refresh token
+        const newRefreshToken = jwt.sign(
           { userId: user._id },
+          process.env.JWT_REFRESH_SECRET,
+          { expiresIn: "7d" },
+        );
+
+        user.refreshToken = newRefreshToken;
+
+        await user.save();
+
+        // 🔐 New access token
+        const newAccessToken = jwt.sign(
+          {
+            userId: user._id,
+            email: user.email,
+            role: user.role,
+          },
           process.env.JWT_SECRET_KEY,
           { expiresIn: "15m" },
         );
 
+        // 🍪 Cookies
         res.cookie("userAccessToken", newAccessToken, {
           httpOnly: true,
           secure: true,
           sameSite: "strict",
+          maxAge: 15 * 60 * 1000,
+        });
+
+        res.cookie("userRefreshToken", newRefreshToken, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "strict",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
         return res.status(StatusCode.SUCCESS).json({
@@ -180,7 +218,7 @@ class UserController {
         });
 
       } catch (error) {
-        return res.status(StatusCode.BAD_REQUEST).json({
+        return res.status(StatusCode.SERVER_ERROR).json({
           success: false,
           message: "Invalid refresh token"
         });
