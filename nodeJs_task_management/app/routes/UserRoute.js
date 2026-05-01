@@ -14,7 +14,11 @@ router.post("/create-user", UserController.createUser);
 
 router.post("/login-user", UserController.loginUser);
 
+router.post("/get-refresh", UserController.getRefreshToken);
+
 router.use(tokenCheck);
+
+router.put("/update-status/:userId", UserController.updateUserStatus);
 
 router.post("/logout-user", UserController.logoutUser);
 

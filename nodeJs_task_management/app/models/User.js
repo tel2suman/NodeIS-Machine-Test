@@ -29,6 +29,12 @@ const UserSchema = new Schema(
       default: "Employee",
     },
 
+    status: {
+      type: String,
+      enum: ["Activate", "Deactivate"],
+      default: "Activate",
+    },
+
     refreshToken: {
       type: String,
       select: false,

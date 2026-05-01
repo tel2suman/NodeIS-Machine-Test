@@ -16,14 +16,15 @@ router.post("/create-task",
     TaskController.createTask
 );
 
-router.get("/view-all-task",
-    Rolechek("Admin"),
-    TaskController.viewTask
+router.get(
+  "/view-all-task",
+  Rolechek("Admin", "SuperAdmin"),
+  TaskController.viewTask,
 );
 
 router.get(
   "/view-single-task/:id",
-  Rolechek("Admin"),
+  Rolechek("Admin", "SuperAdmin"),
   TaskController.viewSingleTask,
 );
 
@@ -35,7 +36,7 @@ router.put(
 
 router.delete(
   "/delete-task/:taskId",
-  Rolechek("Manager", "Employee"),
+  Rolechek("Manager", "Admin", "SuperAdmin"),
   TaskController.deleteTask,
 );
 

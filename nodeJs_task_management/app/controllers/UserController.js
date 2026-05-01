@@ -137,6 +137,93 @@ class UserController {
         }
     }
 
+    async getRefreshToken(req, res) {
+
+      try {
+
+        const refreshToken = req.cookies.userRefreshToken;
+
+        if (!refreshToken) {
+          return res
+            .status(StatusCode.BAD_REQUEST)
+            .json({ success: false, message: "No refresh token" });
+        }
+
+        const decoded = jwt.verify(
+          refreshToken,
+          process.env.JWT_REFRESH_SECRET,
+        );
+
+        const user = await User.findById(decoded.userId);
+
+        if (!user || user.refreshToken !== refreshToken) {
+          return res
+            .status(StatusCode.BAD_REQUEST)
+            .json({ success: false, message: "Invalid token" });
+        }
+
+        const newAccessToken = jwt.sign(
+          { userId: user._id },
+          process.env.JWT_SECRET_KEY,
+          { expiresIn: "15m" },
+        );
+
+        res.cookie("userAccessToken", newAccessToken, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "strict",
+        });
+
+        res.json({ success: false, message: "Token refreshed" });
+
+      } catch (error) {
+        return res.status(StatusCode.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid refresh token"
+        });
+      }
+    }
+
+    async updateUserStatus(req, res) {
+      
+      try {
+
+        const { userId } = req.params;
+
+        const { status, role } = req.body;
+
+        if (!["Activate", "Deactivate"].includes(status)) {
+          return res.status(StatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "Invalid status"
+          });
+        }
+
+        if (!["SuperAdmin", "Admin", "Manager", "Employee"].includes(role)) {
+          return res.status(StatusCode.BAD_REQUEST).json({
+            success: false,
+            message: "Invalid role",
+          });
+        }
+
+        const user = await User.findByIdAndUpdate(req.user.userId,
+          { status, role },{ new: true },
+        );
+
+        return res.status(StatusCode.SUCCESS).json({
+          success: true,
+          message: "Status & role updated",
+          user,
+        });
+
+      } catch (error) {
+        return res.status(StatusCode.SERVER_ERROR).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
     async logoutUser(req, res) {
 
       try {
