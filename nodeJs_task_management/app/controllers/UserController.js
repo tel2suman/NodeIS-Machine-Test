@@ -174,7 +174,10 @@ class UserController {
           sameSite: "strict",
         });
 
-        res.json({ success: false, message: "Token refreshed" });
+        return res.status(StatusCode.SUCCESS).json({
+          success: true,
+          message: "Token refreshed",
+        });
 
       } catch (error) {
         return res.status(StatusCode.BAD_REQUEST).json({
@@ -185,7 +188,7 @@ class UserController {
     }
 
     async updateUserStatus(req, res) {
-      
+
       try {
 
         const { userId } = req.params;
