@@ -29,7 +29,7 @@ class AuthController {
 
   // User registration
   async registerUser(req, res) {
-    
+
     try {
 
       const { name, email, password, about } = req.body;
